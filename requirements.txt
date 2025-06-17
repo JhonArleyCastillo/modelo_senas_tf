@@ -1,0 +1,5 @@
+Tensorflow
+numpy
+Pillow
+matplotlib
+huggingface_hub
