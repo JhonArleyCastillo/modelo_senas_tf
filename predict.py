@@ -1,14 +1,22 @@
 #!/usr/bin/env python3
 """
-Script para realizar predicciones con el modelo de clasificación de señas ASL.
-Compatible con el modelo mejorado del notebook Senas_model.ipynb.
+ASL Sign Classification Prediction Script.
 
-Uso:
-    python predict.py --image ruta/a/imagen.jpg [--model ruta/al/modelo.keras]
+This script provides functionality to make predictions using the improved 
+ASL sign classification model from the Senas_model.ipynb notebook.
+
+Compatible with TensorFlow/Keras models (.keras, .h5 formats).
+
+Usage:
+    python predict.py --image path/to/image.jpg [--model path/to/model.keras]
+
+Example:
+    python predict.py --image test_sign.jpg --visualize --model modelo_senas.keras
 """
 
 import os
 import argparse
+from typing import Tuple, Dict, Any, Optional
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import load_model
@@ -17,51 +25,87 @@ from PIL import Image, ImageEnhance, ImageFilter
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# Suprimir advertencias TF
+# Suppress TensorFlow warnings for cleaner output
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-def cargar_modelo(ruta_modelo):
+def cargar_modelo(ruta_modelo: str) -> Optional[tf.keras.Model]:
     """
-    Carga el modelo desde la ruta especificada.
+    Load a TensorFlow/Keras model from the specified path.
     
     Args:
-        ruta_modelo: Ruta al archivo del modelo (.keras o .h5)
+        ruta_modelo (str): Path to the model file (.keras or .h5).
         
     Returns:
-        El modelo cargado
+        Optional[tf.keras.Model]: Loaded model if successful, None otherwise.
+        
+    Raises:
+        FileNotFoundError: If model file doesn't exist.
+        ValueError: If model format is not supported.
     """
+    if not os.path.exists(ruta_modelo):
+        print(f"Error: Model file not found at {ruta_modelo}")
+        return None
+        
     try:
-        print(f"Cargando modelo desde: {ruta_modelo}")
+        print(f"Loading model from: {ruta_modelo}")
         modelo = load_model(ruta_modelo)
-        print(f"Modelo cargado: {modelo.name}")
+        print(f"Model loaded successfully: {modelo.name}")
         return modelo
     except Exception as e:
-        print(f"Error al cargar el modelo: {e}")
+        print(f"Error loading model: {e}")
         return None
 
-def preprocesar_imagen(ruta_imagen, target_size=(224, 224)):
+def preprocesar_imagen(
+    ruta_imagen: str, 
+    target_size: Tuple[int, int] = (224, 224)
+) -> Tuple[Optional[np.ndarray], Optional[Image.Image]]:
     """
-    Preprocesa una imagen para predicción.
+    Preprocess an image for model prediction with quality enhancements.
     
     Args:
-        ruta_imagen: Ruta a la imagen
-        target_size: Tamaño objetivo para redimensionar
+        ruta_imagen (str): Path to the input image.
+        target_size (Tuple[int, int]): Target size for resizing (width, height).
         
     Returns:
-        Array numpy preprocesado
+        Tuple[Optional[np.ndarray], Optional[Image.Image]]: 
+            Preprocessed image array and PIL image, or (None, None) if error.
+            
+    Raises:
+        FileNotFoundError: If image file doesn't exist.
+        ValueError: If image cannot be processed.
     """
+    if not os.path.exists(ruta_imagen):
+        print(f"Error: Image file not found at {ruta_imagen}")
+        return None, None
+        
     try:
-        # Cargar imagen con PIL
+        # Load image with PIL for better preprocessing options
         img = Image.open(ruta_imagen).convert("RGB")
         
-        # Redimensionar
+        # Resize to target dimensions using high-quality resampling
         img = img.resize(target_size, Image.LANCZOS)
         
-        # Mejorar imagen
+        # Enhance image quality for better recognition
         enhancer = ImageEnhance.Contrast(img)
-        img = enhancer.enhance(1.3)
+        img = enhancer.enhance(1.3)  # Increase contrast by 30%
         
         enhancer = ImageEnhance.Brightness(img)
+        img = enhancer.enhance(1.1)  # Increase brightness by 10%
+        
+        # Apply sharpening filter to improve edge definition
+        img = img.filter(ImageFilter.SHARPEN)
+        
+        # Convert to numpy array and normalize pixel values to [0, 1]
+        img_array = np.array(img) / 255.0
+        
+        # Add batch dimension for model input
+        img_array = np.expand_dims(img_array, axis=0)
+        
+        return img_array, img
+        
+    except Exception as e:
+        print(f"Error preprocessing image: {e}")
+        return None, None
         img = enhancer.enhance(1.1)
         
         # Aplicar filtro de nitidez
