@@ -1,14 +1,23 @@
-metadata
 title: ASL Image
+
 emoji: 🐨
+
 colorFrom: blue
+
 colorTo: purple
+
 sdk: gradio
+
 sdk_version: 5.41.0
+
 app_file: app.py
+
 pinned: false
+
 license: mit
+
 short_description: prediccion de señas
+
 Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
 
 Clasificador de Lengua de Señas ASL
